@@ -1,10 +1,8 @@
 # Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
 
-
 import torch
 import torch.nn as nn
 from megatron.model.enums import AttnMaskType
-
 
 class ScaledUpperTriangMaskedSoftmax(torch.autograd.Function):
     """
@@ -37,7 +35,6 @@ class ScaledUpperTriangMaskedSoftmax(torch.autograd.Function):
 
         return input_grads, None
 
-
 class ScaledMaskedSoftmax(torch.autograd.Function):
     """
     Fused operation which performs following three operations in sequence
@@ -66,7 +63,6 @@ class ScaledMaskedSoftmax(torch.autograd.Function):
             output_grads, softmax_results, scale_t[0]
         )
         return input_grads, None, None
-
 
 class ScaledSoftmax(torch.autograd.Function):
     """
@@ -97,7 +93,6 @@ class ScaledSoftmax(torch.autograd.Function):
             output_grads, softmax_results, scale_t[0]
         )
         return input_grads, None, None
-
 
 class FusedScaleMaskSoftmax(nn.Module):
     """
@@ -144,10 +139,7 @@ class FusedScaleMaskSoftmax(nn.Module):
         # [b, np, sq, sk]
         assert input.dim() == 4
 
-        if self.is_kernel_available(mask, *input.size()):
-            return self.forward_fused_softmax(input, mask)
-        else:
-            return self.forward_torch_softmax(input, mask)
+        return self.forward_torch_softmax(input, mask)
 
     def is_kernel_available(self, mask, b, np, sq, sk):
         attn_batches = b * np

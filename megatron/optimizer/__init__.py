@@ -1,14 +1,12 @@
 # Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
 
-from apex.optimizers import FusedAdam as Adam
-from apex.optimizers import FusedSGD as SGD
+from torch import optim
 
 from megatron import get_args
 
 from .distrib_optimizer import DistributedOptimizer
 from .grad_scaler import ConstantGradScaler, DynamicGradScaler
 from .optimizer import Float16OptimizerWithFloat16Params, FP32Optimizer
-
 
 def get_param_groups(modules,
                      no_weight_decay_cond,
@@ -73,16 +71,8 @@ def get_megatron_optimizer(model,
                                     lr_mult)
 
     if args.optimizer == 'adam':
-        optimizer = Adam(param_groups,
-                         lr=args.lr,
-                         weight_decay=args.weight_decay,
-                         betas=(args.adam_beta1, args.adam_beta2),
-                         eps=args.adam_eps)
-    elif args.optimizer == 'sgd':
-        optimizer = SGD(param_groups,
-                        lr=args.lr,
-                        weight_decay=args.weight_decay,
-                        momentum=args.sgd_momentum)
+        optimizer = optim.Adam(param_groups, lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), eps=args.adam_eps,
+                       weight_decay=args.weight_decay, amsgrad=False)
     else:
         raise Exception('{} optimizer is not supported.'.format(
             args.optimizer))

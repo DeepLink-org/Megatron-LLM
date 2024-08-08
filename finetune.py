@@ -4,6 +4,7 @@ import datetime as dt
 from functools import partial
 
 import torch
+# import torch_dipu
 
 from megatron import get_args, get_tokenizer, get_timers, get_counters, print_rank_0
 from megatron.training import pretrain

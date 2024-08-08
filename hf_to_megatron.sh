@@ -1,0 +1,1 @@
+python weights_conversion/hf_to_megatron.py llama2 --size=70 --out=/mnt/lustrenew/shanhang/project/Megatron-LLM/megatron_weights/ --cache-dir=/mnt/lustrenew/share_data/PAT/datasets/llama2/Llama-2-70b/

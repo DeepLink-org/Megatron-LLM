@@ -5,7 +5,6 @@ import types
 
 import torch
 
-
 def add_arguments(parser):
     group = parser.add_argument_group(title='Megatron loader')
 
@@ -17,7 +16,6 @@ def add_arguments(parser):
     group.add_argument('--megatron_path', type=str, default=None,
                        help='Base directory of deepspeed repository')
 
-
 def _load_checkpoint(queue, args):
     # Search in directory above this
     sys.path.append(os.path.abspath(
@@ -26,18 +24,24 @@ def _load_checkpoint(queue, args):
     if args.megatron_path is not None:
         sys.path.insert(0, args.megatron_path)
 
-    try:
-        import megatron.arguments
-        from megatron.global_vars import set_global_variables
-        from megatron.checkpointing import load_args_from_checkpoint, load_checkpoint
-        from megatron.model.enums import PositionEmbeddingType
-        from megatron.model import ModelType, module
-        from megatron.core import mpu
-        from megatron import fused_kernels
-    except ModuleNotFoundError:
-        print("Unable to import Megatron, please specify the path to Megatron using --megatron_path. Exiting.")
-        queue.put("exit")
-        exit(1)
+    # try:
+    #     import megatron.arguments
+    #     from megatron.global_vars import set_global_variables
+    #     from megatron.checkpointing import load_args_from_checkpoint, load_checkpoint
+    #     from megatron.model.enums import PositionEmbeddingType
+    #     from megatron.model import ModelType, module
+    #     from megatron.core import mpu
+    #     # from megatron import fused_kernels
+    # except ModuleNotFoundError:
+    #     print("Unable to import Megatron, please specify the path to Megatron using --megatron_path. Exiting.")
+    #     queue.put("exit")
+    #     exit(1)
+    import megatron.arguments
+    from megatron.global_vars import set_global_variables
+    from megatron.checkpointing import load_args_from_checkpoint, load_checkpoint
+    from megatron.model.enums import PositionEmbeddingType
+    from megatron.model import ModelType, module
+    from megatron.core import mpu
 
     # We want all arguments to come from us
     sys.argv = ['script.py',
@@ -140,7 +144,7 @@ def _load_checkpoint(queue, args):
     mpu._DATA_PARALLEL_GROUP = 0
     mpu.set_tensor_model_parallel_world_size(margs.tensor_model_parallel_size)
     mpu.set_pipeline_model_parallel_world_size(margs.pipeline_model_parallel_size)
-    fused_kernels.load(margs)
+    # fused_kernels.load(margs)
 
     # Get true (non-padded) vocab size
     if args.true_vocab_size is not None:
@@ -339,7 +343,6 @@ def _load_checkpoint(queue, args):
             }
             queue_put("binary head", message)
     queue.put("done")
-
 
 def load_checkpoint(queue, args):
     try:
