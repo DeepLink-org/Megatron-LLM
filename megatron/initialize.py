@@ -10,7 +10,7 @@ import torch
 from datetime import timedelta
 
 import megatron
-import megatron.fused_kernels
+# import megatron.fused_kernels
 from megatron import get_adlr_autoresume
 from megatron import get_tensorboard_writer
 from megatron.core import mpu, tensor_parallel
@@ -21,7 +21,6 @@ from megatron.checkpointing import load_args_from_checkpoint
 from megatron.global_vars import set_global_variables
 from megatron.model.transformer import bias_dropout_add_fused_train
 from megatron.model.fused_bias_gelu import bias_gelu
-
 
 def initialize_megatron(extra_args_provider=None,
                         args_defaults={}):
@@ -65,7 +64,6 @@ def initialize_megatron(extra_args_provider=None,
     # No continuation function
     return None
 
-
 def _compile_dependencies(args):
     # =========================
     # Compile dataset C++ code.
@@ -102,24 +100,23 @@ def _compile_dependencies(args):
                   ' back to unfused kernel invocations.', flush=True)
     
     # Always build on rank zero first.
-    if torch.distributed.get_rank() == 0:
-        start_time = time.time()
-        print('> compiling and loading fused kernels ...', flush=True)
-        megatron.fused_kernels.load(args)
-        torch.distributed.barrier()
-    else:
-        torch.distributed.barrier()
-        megatron.fused_kernels.load(args)
-    # Simple barrier to make sure all ranks have passed the
-    # compilation phase successfully before moving on to the
-    # rest of the program. We think this might ensure that
-    # the lock is released.
-    torch.distributed.barrier()
-    if torch.distributed.get_rank() == 0:
-        print('>>> done with compiling and loading fused kernels. '
-              'Compilation time: {:.3f} seconds'.format(
-                  time.time() - start_time), flush=True)
-
+    # if torch.distributed.get_rank() == 0:
+    #     start_time = time.time()
+    #     print('> compiling and loading fused kernels ...', flush=True)
+    #     megatron.fused_kernels.load(args)
+    #     torch.distributed.barrier()
+    # else:
+    #     torch.distributed.barrier()
+    #     megatron.fused_kernels.load(args)
+    # # Simple barrier to make sure all ranks have passed the
+    # # compilation phase successfully before moving on to the
+    # # rest of the program. We think this might ensure that
+    # # the lock is released.
+    # torch.distributed.barrier()
+    # if torch.distributed.get_rank() == 0:
+    #     print('>>> done with compiling and loading fused kernels. '
+    #           'Compilation time: {:.3f} seconds'.format(
+    #               time.time() - start_time), flush=True)
 
 def _initialize_distributed(args):
     """Initialize torch.distributed and core model parallel."""
@@ -166,7 +163,6 @@ def _initialize_distributed(args):
                 print(f'> initialized pipeline model parallel with size '
                       f'{mpu.get_pipeline_model_parallel_world_size()}')
 
-
 def _init_autoresume():
     """Set autoresume start time."""
     autoresume = get_adlr_autoresume()
@@ -174,7 +170,6 @@ def _init_autoresume():
         torch.distributed.barrier()
         autoresume.init()
         torch.distributed.barrier()
-
 
 def _set_random_seed(seed_, data_parallel_random_init=False):
     """Set random seed for reproducability."""
@@ -192,7 +187,6 @@ def _set_random_seed(seed_, data_parallel_random_init=False):
     else:
         raise ValueError('Seed ({}) should be a positive integer.'.format(seed_))
 
-
 def write_args_to_tensorboard(args):
     """Write arguments to tensorboard."""
     # NOTE: if we use wandb, then the args are logged on creation, so nothing happens in this 
@@ -203,7 +197,6 @@ def write_args_to_tensorboard(args):
             for arg in vars(args):
                 writer.add_text(arg, str(getattr(args, arg)),
                                 global_step=args.iteration)
-
 
 def set_jit_fusion_options(args):
     """Set PyTorch JIT layer fusion options."""
@@ -227,7 +220,6 @@ def set_jit_fusion_options(args):
         torch._C._jit_override_can_fuse_on_gpu(True)
 
     _warmup_jit_function(args)
-
 
 def _warmup_jit_function(args):
     """ Compile JIT functions before the main training steps """

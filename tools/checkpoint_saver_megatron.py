@@ -3,7 +3,6 @@ import sys
 
 import torch
 
-
 def add_arguments(parser):
     group = parser.add_argument_group(title='Megatron saver')
     group.add_argument('--megatron_path', type=str, default=None,
@@ -14,7 +13,6 @@ def add_arguments(parser):
     group.add_argument('--target_pipeline_parallel_size', type=int,
                        help='Target tensor model parallel size, default to the pipeline parall size '
                        'in the input checkpoint if provided by the loader, otherwise to 1')
-
 
 def save_checkpoint(queue, args):
     # Search in directory above this
@@ -31,7 +29,7 @@ def save_checkpoint(queue, args):
         from megatron.model.enums import PositionEmbeddingType
         from megatron.model import ModelType
         from megatron.tokenizer.tokenizer import _vocab_size_with_padding
-        from megatron import fused_kernels
+        # from megatron import fused_kernels
         from megatron.core import mpu
     except ModuleNotFoundError:
         print("Unable to import Megatron, please specify the path to Megatron using --megatron_path. Exiting.")
@@ -171,7 +169,7 @@ def save_checkpoint(queue, args):
     mpu.set_pipeline_model_parallel_world_size(args.target_pipeline_parallel_size)
     mpu.set_tensor_model_parallel_rank(0)
     mpu.set_pipeline_model_parallel_rank(0)
-    fused_kernels.load(margs)
+    # fused_kernels.load(margs)
 
     # Embeddings
     embeddings_msg = queue_get("embeddings")

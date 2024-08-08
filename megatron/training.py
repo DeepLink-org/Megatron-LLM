@@ -40,7 +40,7 @@ from megatron.model import DistributedDataParallel as LocalDDP
 import megatron.utils
 from megatron.utils import unwrap_model
 from megatron.data.data_samplers import build_pretraining_data_loader
-from megatron.utils import calc_params_l2_norm
+# from megatron.utils import calc_params_l2_norm
 from megatron.schedules import get_forward_backward_func
 from megatron.utils import report_memory
 
@@ -695,8 +695,8 @@ def _train(args, forward_step_func,
         # Logging.
         loss_scale = optimizer.get_loss_scale().item()
         params_norm = None
-        if args.log_params_norm:
-            params_norm = calc_params_l2_norm(model)
+        # if args.log_params_norm:
+        #     params_norm = calc_params_l2_norm(model)
         report_memory_flag = training_log(loss_dict, total_loss_dict,
                                           optimizer.param_groups[0]['lr'],
                                           iteration, loss_scale,

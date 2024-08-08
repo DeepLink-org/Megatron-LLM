@@ -6,7 +6,7 @@ from contextlib import nullcontext
 from typing import Callable
 
 import torch
-import flash_attn
+# import flash_attn
 from torch.nn import functional as F
 from einops import rearrange
 
@@ -23,7 +23,7 @@ from megatron.model.utils import attention_mask_func, erf_gelu
 # Extracted from: https://github.com/bigscience-workshop/Megatron-DeepSpeed
 from .glu_activations import GLU_ACTIVATIONS
 from megatron.model.positional_embeddings import precompute_freqs_cis, apply_rotary_emb
-from flash_attn.bert_padding import pad_input, unpad_input_for_concatenated_sequences
+# from flash_attn.bert_padding import pad_input, unpad_input_for_concatenated_sequences
 
 """ We use the following notation throughout this file:
      h: hidden size
@@ -62,7 +62,6 @@ class DropPath(MegatronModule):
         output = hidden_state.div(keep_prob) * random_tensor
         return output
 
-
 def _args_to_kwargs(args):
     common_kwargs = {
         "params_dtype": args.params_dtype,
@@ -72,7 +71,6 @@ def _args_to_kwargs(args):
         "sequence_parallel_enabled": args.sequence_parallel,
     }
     return common_kwargs
-
 
 class ParallelMLP(MegatronModule):
     """MLP.
@@ -139,7 +137,6 @@ class ParallelMLP(MegatronModule):
         # [s, b, h]
         output, output_bias = self.dense_4h_to_h(intermediate_parallel)
         return output, output_bias
-
 
 class CoreAttention(MegatronModule):
     def __init__(self,
@@ -276,7 +273,6 @@ class CoreAttention(MegatronModule):
         context_layer = context_layer.view(*new_context_layer_shape)
         return context_layer
 
-
 class ParallelAttention(MegatronModule):
     """Parallel self-attention layer abstract class.
 
@@ -305,19 +301,19 @@ class ParallelAttention(MegatronModule):
         self.num_attention_heads_kv = args.num_attention_heads_kv
         self.num_attention_heads = args.num_attention_heads
         self.seq_length = args.seq_length
-        if self.use_flash_attn:
-            assert attention_type == AttnType.self_attn, ('FlashAttention code path only supports '
-                                                          'self-attention for now')
-            assert self.attn_mask_type == AttnMaskType.causal, ('FlashAttention code path only '
-                                                                'supports causal mask for now')
-            # If sliding window is enabled, we need to make sure that the sliding window is supported.
-            if self.sliding_window_size is not None:
-                import inspect
-                # https://github.com/huggingface/transformers/blob/7e1eff7600085814eac65876d4d8a0e38c2f6ccc/src/transformers/models/mistral/modeling_mistral.py#L50C5-L50C32
-                assert "window_size" in list(inspect.signature(
-                    flash_attn.flash_attn_func
-                ).parameters), "The current flash attention version does not support sliding window attention, please update to the latest version."
-                assert self.use_flash_attn, "Sliding window attention is only supported with flash attention for now."
+        # if self.use_flash_attn:
+        #     assert attention_type == AttnType.self_attn, ('FlashAttention code path only supports '
+        #                                                   'self-attention for now')
+        #     assert self.attn_mask_type == AttnMaskType.causal, ('FlashAttention code path only '
+        #                                                         'supports causal mask for now')
+        #     # If sliding window is enabled, we need to make sure that the sliding window is supported.
+        #     if self.sliding_window_size is not None:
+        #         import inspect
+        #         # https://github.com/huggingface/transformers/blob/7e1eff7600085814eac65876d4d8a0e38c2f6ccc/src/transformers/models/mistral/modeling_mistral.py#L50C5-L50C32
+        #         assert "window_size" in list(inspect.signature(
+        #             flash_attn.flash_attn_func
+        #         ).parameters), "The current flash attention version does not support sliding window attention, please update to the latest version."
+        #         assert self.use_flash_attn, "Sliding window attention is only supported with flash attention for now."
 
         projection_size = args.kv_channels * args.num_attention_heads
 
@@ -365,8 +361,8 @@ class ParallelAttention(MegatronModule):
         self.core_attention = CoreAttention(self.layer_number, self.attn_mask_type, args, world_size)
         self.checkpoint_core_attention = args.recompute_granularity == 'selective'
 
-        if self.use_flash_attn:
-            self.core_attention_flash = flash_attn.flash_attn_func
+        # if self.use_flash_attn:
+        #     self.core_attention_flash = flash_attn.flash_attn_func
 
         # Output.
         self.dense = megatron.core.tensor_parallel.RowParallelLinear(
@@ -521,36 +517,36 @@ class ParallelAttention(MegatronModule):
             else:
                 context_layer = self.core_attention(
                     query_layer, key_layer, value_layer, attention_mask)
-        else:
-            flash_attn_extra_kwargs = {}
-            # check if we need to use sliding window attention
-            # https://github.com/huggingface/transformers/blob/7ee995fd9c692761c4601ddbffa2ac2ec9f27b0b/src/transformers/models/mistral/modeling_mistral.py#L353
-            if self.sliding_window_size is not None:
-                kv_seq_len = key_layer.shape[0]
-                if kv_seq_len > self.sliding_window_size:
-                    # https://github.com/huggingface/transformers/blob/7ee995fd9c692761c4601ddbffa2ac2ec9f27b0b/src/transformers/models/mistral/modeling_mistral.py#L510C21-L510C89
-                    flash_attn_extra_kwargs["window_size"] = (
-                        self.sliding_window_size, self.sliding_window_size
-                    )
-                    # It will be truncated to the actual sequence length inside flash attention
-                    # https://github.com/Dao-AILab/flash-attention/blob/83aef842beec1037eb8c1d9c3ef3ed8aae80b091/csrc/flash_attn/src/softmax.h#L159-L161
+        # else:
+        #     flash_attn_extra_kwargs = {}
+        #     # check if we need to use sliding window attention
+        #     # https://github.com/huggingface/transformers/blob/7ee995fd9c692761c4601ddbffa2ac2ec9f27b0b/src/transformers/models/mistral/modeling_mistral.py#L353
+        #     if self.sliding_window_size is not None:
+        #         kv_seq_len = key_layer.shape[0]
+        #         if kv_seq_len > self.sliding_window_size:
+        #             # https://github.com/huggingface/transformers/blob/7ee995fd9c692761c4601ddbffa2ac2ec9f27b0b/src/transformers/models/mistral/modeling_mistral.py#L510C21-L510C89
+        #             flash_attn_extra_kwargs["window_size"] = (
+        #                 self.sliding_window_size, self.sliding_window_size
+        #             )
+        #             # It will be truncated to the actual sequence length inside flash attention
+        #             # https://github.com/Dao-AILab/flash-attention/blob/83aef842beec1037eb8c1d9c3ef3ed8aae80b091/csrc/flash_attn/src/softmax.h#L159-L161
 
-            q, k, v = [rearrange(x, "s b n h -> b s n h").contiguous()
-                    for x in (query_layer, key_layer, value_layer)]
-            if not self.sequence_parallel:
-                with megatron.core.tensor_parallel.get_cuda_rng_tracker().fork():
-                    context_layer = self.core_attention_flash(
-                        q, k, v,
-                        causal=True,
-                        **flash_attn_extra_kwargs
-                    )
-            else:
-                context_layer = self.core_attention_flash(
-                    q, k, v,
-                    causal=True,
-                    **flash_attn_extra_kwargs
-                )
-            context_layer = rearrange(context_layer, 'b s n h -> s b (n h)').contiguous()
+        #     q, k, v = [rearrange(x, "s b n h -> b s n h").contiguous()
+        #             for x in (query_layer, key_layer, value_layer)]
+        #     if not self.sequence_parallel:
+        #         with megatron.core.tensor_parallel.get_cuda_rng_tracker().fork():
+        #             context_layer = self.core_attention_flash(
+        #                 q, k, v,
+        #                 causal=True,
+        #                 **flash_attn_extra_kwargs
+        #             )
+        #     else:
+        #         context_layer = self.core_attention_flash(
+        #             q, k, v,
+        #             causal=True,
+        #             **flash_attn_extra_kwargs
+        #         )
+        #     context_layer = rearrange(context_layer, 'b s n h -> s b (n h)').contiguous()
 
         # =================
         # Output. [sq, b, h]
@@ -559,12 +555,10 @@ class ParallelAttention(MegatronModule):
         output, bias = self.dense(context_layer)
         return output, bias
 
-
 def dropout_add(x, residual, prob, training):
     out = torch.nn.functional.dropout(x, p=prob, training=training)
     out = residual + out
     return out
-
 
 def bias_dropout_add(x, bias, residual, prob, training):
     # type: (Tensor, Tensor, Tensor, float, bool) -> Tensor
@@ -572,26 +566,20 @@ def bias_dropout_add(x, bias, residual, prob, training):
     out = residual + out
     return out
 
-
 def get_bias_dropout_add(training):
     def _bias_dropout_add(x, bias, residual, prob):
         return bias_dropout_add(x, bias, residual, prob, training)
     return _bias_dropout_add
-
-
 
 def dropout_add(x, residual, prob, training):
     out = torch.nn.functional.dropout(x, p=prob, training=training)
     out = residual + out
     return out
 
-
 def get_dropout_add(training):
     def _dropout_add(x, residual, prob):
         return dropout_add(x, residual, prob, training)
     return _dropout_add
-
-
 
 @torch.jit.script
 def bias_dropout_add_fused_train(x: torch.Tensor,
@@ -600,14 +588,12 @@ def bias_dropout_add_fused_train(x: torch.Tensor,
                                  prob: float) -> torch.Tensor:
     return bias_dropout_add(x, bias, residual, prob, True)
 
-
 @torch.jit.script
 def bias_dropout_add_fused_inference(x: torch.Tensor,
                                      bias: torch.Tensor,
                                      residual: torch.Tensor,
                                      prob: float) -> torch.Tensor:
     return bias_dropout_add(x, bias, residual, prob, False)
-
 
 class ParallelTransformerLayer(MegatronModule):
     """A single transformer layer.
@@ -845,7 +831,6 @@ class ParallelTransformerLayer(MegatronModule):
         output = self.output_layernorm(output)
         return output
 
-
 class NoopTransformerLayer(MegatronModule):
     """A single 'no-op' transformer layer.
 
@@ -870,7 +855,6 @@ class NoopTransformerLayer(MegatronModule):
                 encoder_output=None, enc_dec_attn_mask=None,
                 inference_params=None):
         return hidden_states.clone()
-
 
 def _get_num_layers(args, is_encoder_and_decoder_model, is_decoder=False):
     """Compute the number of transformer layers resident on the current rank."""
@@ -922,7 +906,6 @@ def _get_num_layers(args, is_encoder_and_decoder_model, is_decoder=False):
         else:
             num_layers = args.decoder_num_layers
     return num_layers
-
 
 class ParallelTransformer(MegatronModule):
     def __init__(self,
